@@ -1,0 +1,15 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ns-kernel-mech-traffic
+
+resources:
+- ns-kernel-mech-traffic.yaml
+- netsvc.yaml
+- netsvc2.yaml
+- nse-kernel-1.yaml
+- nse-kernel-2.yaml
+- iperf-server-1.yaml
+- iperf-server-2.yaml
+
