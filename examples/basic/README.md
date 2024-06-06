@@ -1,41 +1,69 @@
 # Basic examples
-
-Contain basic setup for NSM that includes `nsmgr`, `forwarder-vpp`, `registry-k8s`. This setup can be used to check mechanisms combination or some kind of NSM [features](../features).
+-
+Contain basic setup for NSM that includes `nsmgr`, `forwarder-vpp`, `registry-k8s`. `forwarder-vpp` is special since starts with external vpp. Vpp running in different pod.
 
 ## Requires
 
 - [spire](../spire/single_cluster/)
+
+- local forwarder image patched
+
+```bash
+/networkservicemesh/cmd-forwarder-vpp (v1.13.1-rc.4)
+> git diff
+diff --git a/main.go b/main.go
+index 7a1087d..118e272 100644
+--- a/main.go
++++ b/main.go
+@@ -178,7 +178,7 @@ func main() {
+                cleanupOpts = append(cleanupOpts, cleanup.WithDoneChan(cleanupDoneCh))
+                log.FromContext(ctx).Info("external vpp is being used")
+ 
+-               if err = cfg.VppInit.Decode("NONE"); err != nil {
++               if err = cfg.VppInit.Decode("AF_PACKET"); err != nil {
+                        log.FromContext(ctx).Fatalf("VppInit.Decode error: %v", err)
+                }
+        } else { // If we don't have a VPPAPISocket, start VPP and use that
+```
+
+- cmd-forwarder-vpp:local image built and loaded to kind
+
+```bash
+/networkservicemesh/cmd-forwarder-vpp (v1.13.1-rc.4)
+ >
+docker build . --tag cmd-forwarder-vpp:local
+
+kind load docker-image cmd-forwarder-vpp:local
+```
+
+- vpp:local built and loaded to kind
+
+```bash
+nsm-deployments-k8s/examples/basic/vpp vpp-sep
+ > docker build . --tag vpp:local
+
+kind load docker-image vpp:local
+```
 
 ## Run
 
 Apply NSM resources for basic tests:
 
 ```bash
-kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/basic?ref=v1.13.1
+kubectl apply -k .
 ```
 
 Wait for admission-webhook-k8s:
 
 ```bash
-WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items
+}}{{.metadata.name}}{{"\n"}}{{end}}')
 kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system
 ```
-
 ## Includes
 
-- [Memif to Memif Connection](../use-cases/Memif2Memif)
 - [Kernel to Kernel Connection](../use-cases/Kernel2Kernel)
-- [Kernel to Memif Connection](../use-cases/Kernel2Memif)
-- [Memif to Kernel Connection](../use-cases/Memif2Kernel)
-- [Kernel to Ethernet to Kernel Connection](../use-cases/Kernel2Ethernet2Kernel)
-- [Memif to Ethernet to Memif Connection](../use-cases/Memif2Ethernet2Memif)
-- [Kernel to Ethernet to Memif Connection](../use-cases/Kernel2Ethernet2Memif)
-- [Memif to Ethernet to Kernel Connection](../use-cases/Memif2Ethernet2Kernel)
-- [Kernel to IP to Kernel Connection](../use-cases/Kernel2IP2Kernel)
-- [Memif to IP to Memif Connection](../use-cases/Memif2IP2Memif)
-- [Kernel to IP to Memif Connection](../use-cases/Kernel2IP2Memif)
-- [Memif to IP to Kernel Connection](../use-cases/Memif2IP2Kernel)
-- [vL3-basic](../use-cases/vl3-basic)
+- kernel traffic test from 'traffic' branch of https://github.com/Nordix/nsm-deployments-k8s
 
 ## Cleanup
 
