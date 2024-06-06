@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iperf-server-1
+  labels:
+    app: iperf-server-1
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: iperf-server-1
+  template:
+    metadata:
+      labels:
+        app: iperf-server-1
+      annotations:
+        networkservicemesh.io: kernel://kernel-mech-trafficv4/nsm-1
+    spec:
+      containers:
+        - name: iperf
+          image: networkstatic/iperf3:latest
+          imagePullPolicy: IfNotPresent
+          command: ["tail", "-f", "/dev/null"]
