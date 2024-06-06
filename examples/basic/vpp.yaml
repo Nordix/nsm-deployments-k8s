@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vpp
+  labels:
+    app: vpp
+spec:
+  selector:
+    matchLabels:
+      app: vpp
+  template:
+    metadata:
+      labels:
+        app: vpp
+    spec:
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - image: vpp:local
+          imagePullPolicy: IfNotPresent
+          name: vpp
+          securityContext:
+            privileged: true
+          env:
+          volumeMounts:
+            - name: vpp
+              mountPath: /var/run/vpp/external
+          resources:
+            requests:
+              memory: 350Mi
+              cpu: 150m
+            limits:
+              memory: 1Gi
+              cpu: 525m
+      volumes:
+        - name: vpp
+          hostPath:
+            path: /var/run/vpp
+            type: DirectoryOrCreate
