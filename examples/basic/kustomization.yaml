@@ -9,7 +9,10 @@ resources:
 - ../../apps/nsmgr
 - ../../apps/forwarder-vpp
 - ../../apps/registry-k8s
+- vpp.yaml
 - ../../apps/admission-webhook-k8s
 
 patches:
-- path: forwarder-patch.yaml
+#- path: forwarder-patch.yaml
+- path: forwarder-patch2.yaml
+#- path: nsmgr-patch.yaml
