@@ -29,7 +29,7 @@ spec:
             - name: vpp
               mountPath: /var/run/vpp/external
       containers:
-        - image: registry.nordix.org/cloud-native/nsm/cmd-forwarder-vpp:v1.13.1-rc.5
+        - image: cmd-forwarder-vpp:local
           imagePullPolicy: IfNotPresent
           name: forwarder-vpp
           securityContext:
