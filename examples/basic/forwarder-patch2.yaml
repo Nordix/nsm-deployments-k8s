@@ -1,0 +1,117 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: forwarder-vpp
+  labels:
+    app: forwarder-vpp
+spec:
+  selector:
+    matchLabels:
+      app: forwarder-vpp
+  template:
+    metadata:
+      labels:
+        app: forwarder-vpp
+        "spiffe.io/spiffe-id": "true"
+    spec:
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+        - name: init-sock
+          image: registry.nordix.org/cloud-native/nsm/vppinit:v0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_VPP_API_SOCKET
+              value: /var/run/vpp/external/api.sock
+          volumeMounts:
+            - name: vpp
+              mountPath: /var/run/vpp/external
+      containers:
+        - image: registry.nordix.org/cloud-native/nsm/cmd-forwarder-vpp:v1.13.1-rc.5
+          imagePullPolicy: IfNotPresent
+          name: forwarder-vpp
+          securityContext:
+            privileged: true
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_LOG_LEVEL
+              value: TRACE
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: NSM_LISTEN_ON
+              value: unix:///listen.on.sock
+            - name: NSM_VPP_API_SOCKET
+              value: /var/run/vpp/external/api.sock
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+            - name: kubelet-socket
+              mountPath: /var/lib/kubelet
+            - name: cgroup
+              mountPath: /host/sys/fs/cgroup
+            - name: vfio
+              mountPath: /host/dev/vfio
+            - name: vpp
+              mountPath: /var/run/vpp/external
+          resources:
+            requests:
+              memory: 350Mi
+              cpu: 150m
+            limits:
+              memory: 500Mi
+              cpu: 525m
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=unix:///listen.on.sock"]
+            failureThreshold: 120
+            initialDelaySeconds: 1
+            periodSeconds: 1
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=unix:///listen.on.sock"]
+            failureThreshold: 25
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+          startupProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=unix:///listen.on.sock"]
+            failureThreshold: 25
+            periodSeconds: 5
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+        - name: kubelet-socket
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+        - name: vfio
+          hostPath:
+            path: /dev/vfio
+            type: DirectoryOrCreate
+        - name: vpp
+          hostPath:
+            path: /var/run/vpp
+            type: DirectoryOrCreate
