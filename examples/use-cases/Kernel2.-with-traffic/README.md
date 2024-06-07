@@ -43,7 +43,7 @@ kubectl wait --for=condition=ready --timeout=1m pod -l app=iperf-server-2 -n $AP
 kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel-1 -n $APP_NS
 ```
 
-Start iperf server on NSCs and start some traffic from NSE
+Start IPv4 iperf server on NSCs and start some traffic from NSE
 
 ```
 for nsc in $(kubectl get pods -l app=iperf-server-1 -n ${APP_NS} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'); do
@@ -56,11 +56,26 @@ done
 done
 ```
 
+Start IPv6 iperf server on NSCs and start some traffic from NSE
+
+```
+for nsc in $(kubectl get pods -l app=iperf-server-2 -n ${APP_NS} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'); do
+NSC_IP=$(kubectl exec -n ${APP_NS} ${nsc} -c cmd-nsc -- ip a s dev nsm-2 | grep 'inet6 ' | cut -f 6 -d ' ' | cut -f1 -d'/'| grep ^100)
+echo "nsc: ${nsc} : ${NSC_IP}";
+kubectl exec -n ${APP_NS} ${nsc} -c iperf -- bash -c "iperf3 -sD -B ${NSC_IP} -i20 --timestamps \"%H:%M:%S\" --logfile /tmp/iperf-${nsc}.log &"
+for nse in $(kubectl get pods -l app=nse-kernel-2 -n ${APP_NS} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'); do
+kubectl exec -n ${APP_NS} ${nse} -c iperf -- bash -c "iperf3 -i0 -t 25 -c ${NSC_IP} --timestamps \"%H:%M:%S\" --logfile /tmp/iperf-${nse}-${nsc}.log &" &
+done
+done
+```
+
+
 Wait and check the logs
 
 ```
 sleep 30
 for nse in $(kubectl get pods -l app=nse-kernel-1 -n ${APP_NS} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'); do kubectl exec -n ${APP_NS} ${nse} -c iperf -- bash -c 'for logf in /tmp/iperf-*; do echo $logf; cat $logf; done'; done
+for nse in $(kubectl get pods -l app=nse-kernel-2 -n ${APP_NS} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'); do kubectl exec -n ${APP_NS} ${nse} -c iperf -- bash -c 'for logf in /tmp/iperf-*; do echo $logf; cat $logf; done'; done
 ```
 
 ## Cleanup
