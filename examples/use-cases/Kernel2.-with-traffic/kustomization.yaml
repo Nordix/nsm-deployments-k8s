@@ -8,8 +8,14 @@ resources:
 - ns-kernel-mech-traffic.yaml
 - netsvc.yaml
 - netsvc2.yaml
+- netsvc3.yaml
+- netsvc4.yaml
 - nse-kernel-1.yaml
 - nse-kernel-2.yaml
 - iperf-server-1.yaml
 - iperf-server-2.yaml
+- nse-kernel-3.yaml
+- nse-kernel-4.yaml
+- iperf-server-3.yaml
+- iperf-server-4.yaml
 
